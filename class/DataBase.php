@@ -122,7 +122,7 @@ class DataBase
         if (!$this->openConnection()) return [];
 
         $response = $this->pdo_connection->query(
-            "SELECT `usage` FROM " . $table_name . " WHERE chat = " . $chat . " ORDER BY id DESC LIMIT " . $limit
+            "SELECT `usage` FROM " . $table_name . " WHERE chat = " . $chat . " AND update_datetime > DATE_SUB(NOW(), INTERVAL " . $limit . " MINUTE) ORDER BY id"
         );
         $result = array_map(function ($item) {
             return $item['usage'];

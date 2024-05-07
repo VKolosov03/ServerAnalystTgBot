@@ -107,16 +107,16 @@ class Main
         $response .= '🖥️ Використання процесора: ' . $cpu_data['usage'] . "%;\n";
         $response .= '🖥️ Потоків процесора: ' . $cpu_data['threads'] . ";\n";
 
-        if ($cpu_data['usage'] > $chat_data['serious_warning_value']) {
+        if ($cpu_data['usage'] > $chat_data['cpu_serious_warning_value']) {
             $response .= '🔴 Критичне навантаження на процесор!';
-        } elseif ($cpu_data['usage'] > $chat_data['light_warning_value']) {
+        } elseif ($cpu_data['usage'] > $chat_data['cpu_light_warning_value']) {
             $response .= '🟡 Середнє навантаження на процесор.';
         } else {
             $response .= '🟢 Мінімальне навантаження на процесор';
         }
 
         $this->db->setUpdateStatsTableData('cpu_info', $chat_id, $cpu_data);
-        $last_cpu_usage_data = $this->db->getLastUsageDataByChatId('cpu_info', $chat_id, $chat_data['warning_limit']);
+        $last_cpu_usage_data = $this->db->getLastUsageDataByChatId('cpu_info', $chat_id, $chat_data['warning_time_limit']);
         $photo = [];
 
         if (count($last_cpu_usage_data) > 1) {
@@ -129,8 +129,8 @@ class Main
             $photo[] = [
                 'url' => (new DiagramsImages())->createUsageVerticalBarChart(
                     $last_cpu_usage_data,
-                    $chat_data['light_warning_value'],
-                    $chat_data['serious_warning_value']
+                    $chat_data['cpu_light_warning_value'],
+                    $chat_data['cpu_serious_warning_value']
                 ),
                 'text' => $bar_chart_caption
             ];
@@ -164,16 +164,16 @@ class Main
         $response .= '🌡️ Використано оперативної пам\'яті: ' . $ram_data['used'] . "GB;\n";
         $response .= '🌡️ Вільно оперативної пам\'яті: ' . $ram_data['available'] . "GB;\n";
 
-        if ($ram_data['usage'] > $chat_data['serious_warning_value']) {
+        if ($ram_data['usage'] > $chat_data['ram_serious_warning_value']) {
             $response .= '🔴 Критичне використання оперативної пам\'яті!';
-        } elseif ($ram_data['usage'] > $chat_data['light_warning_value']) {
+        } elseif ($ram_data['usage'] > $chat_data['ram_light_warning_value']) {
             $response .= '🟡 Середнє використання оперативної пам\'яті.';
         } else {
             $response .= '🟢 Мінімальне використання оперативної пам\'яті.';
         }
 
         $this->db->setUpdateStatsTableData('ram_info', $chat_id, $ram_data);
-        $last_ram_usage_data = $this->db->getLastUsageDataByChatId('ram_info', $chat_id, $chat_data['warning_limit']);
+        $last_ram_usage_data = $this->db->getLastUsageDataByChatId('ram_info', $chat_id, $chat_data['warning_time_limit']);
         $photo = [];
 
         $photo[] = [
@@ -191,8 +191,8 @@ class Main
             $photo[] = [
                 'url' => (new DiagramsImages())->createUsageVerticalBarChart(
                     $last_ram_usage_data,
-                    $chat_data['light_warning_value'],
-                    $chat_data['serious_warning_value']
+                    $chat_data['ram_light_warning_value'],
+                    $chat_data['ram_serious_warning_value']
                 ),
                 'text' => $bar_chart_caption
             ];
@@ -226,16 +226,16 @@ class Main
         $response .= '💽 Використано місця на жорсткому диску: ' . $disk_data['used'] . "GB;\n";
         $response .= '💽 Вільно  місця на жорсткому диску: ' . $disk_data['available'] . "GB;\n";
 
-        if ($disk_data['usage'] > $chat_data['serious_warning_value']) {
+        if ($disk_data['usage'] > $chat_data['disk_serious_warning_value']) {
             $response .= '🔴 Критичне використання жорсткого диску!';
-        } elseif ($disk_data['usage'] > $chat_data['light_warning_value']) {
+        } elseif ($disk_data['usage'] > $chat_data['disk_light_warning_value']) {
             $response .= '🟡 Середнє використання жорсткого диску.';
         } else {
             $response .= '🟢 Мінімальне використання жорсткого диску.';
         }
 
         $this->db->setUpdateStatsTableData('disk_info', $chat_id, $disk_data);
-        $last_disk_usage_data = $this->db->getLastUsageDataByChatId('disk_info', $chat_id, $chat_data['warning_limit']);
+        $last_disk_usage_data = $this->db->getLastUsageDataByChatId('disk_info', $chat_id, $chat_data['warning_time_limit']);
         $photo = [];
 
         $photo[] = [
@@ -253,8 +253,8 @@ class Main
             $photo[] = [
                 'url' => (new DiagramsImages())->createUsageVerticalBarChart(
                     $last_disk_usage_data,
-                    $chat_data['light_warning_value'],
-                    $chat_data['serious_warning_value']
+                    $chat_data['disk_light_warning_value'],
+                    $chat_data['disk_serious_warning_value']
                 ),
                 'text' => $bar_chart_caption
             ];
@@ -301,30 +301,30 @@ class Main
             $this->db->setUpdateStatsTableData('ram_info', $chat['chat_id'], $ram_data);
             $this->db->setUpdateStatsTableData('disk_info', $chat['chat_id'], $disk_data);
 
-            $last_cpu_usage_data = $this->db->getLastUsageDataByChatId('cpu_info', $chat['chat_id'], $chat['warning_limit']);
-            $last_ram_usage_data = $this->db->getLastUsageDataByChatId('ram_info', $chat['chat_id'], $chat['warning_limit']);
-            $last_disk_usage_data = $this->db->getLastUsageDataByChatId('disk_info', $chat['chat_id'], $chat['warning_limit']);
+            $last_cpu_usage_data = $this->db->getLastUsageDataByChatId('cpu_info', $chat['chat_id'], $chat['warning_time_limit']);
+            $last_ram_usage_data = $this->db->getLastUsageDataByChatId('ram_info', $chat['chat_id'], $chat['warning_time_limit']);
+            $last_disk_usage_data = $this->db->getLastUsageDataByChatId('disk_info', $chat['chat_id'], $chat['warning_time_limit']);
 
             if (num_array_check_less_than_or_equal($last_cpu_usage_data, $chat['serious_warning_value'])) {
-                $this->sendErrorMessage($last_cpu_usage_data, 'CPU', $chat);
+                $this->sendErrorMessage($last_cpu_usage_data, 'CPU', $chat['chat_id'], $chat['cpu_light_warning_value'], $chat['cpu_serious_warning_value']);
             }
 
             if (num_array_check_less_than_or_equal($last_ram_usage_data, $chat['serious_warning_value'])) {
-                $this->sendErrorMessage($last_ram_usage_data, 'RAM', $chat);
+                $this->sendErrorMessage($last_ram_usage_data, 'RAM', $chat['chat_id'], $chat['ram_light_warning_value'], $chat['ram_serious_warning_value']);
             }
 
             if (num_array_check_less_than_or_equal($last_disk_usage_data, $chat['serious_warning_value'])) {
-                $this->sendErrorMessage($last_disk_usage_data, 'HDD', $chat);
+                $this->sendErrorMessage($last_disk_usage_data, 'HDD', $chat['chat_id'], $chat['disk_light_warning_value'], $chat['disk_serious_warning_value']);
             }
         }
     }
 
-    private function sendErrorMessage($error_data, $part_name, $chat_data)
+    private function sendErrorMessage($error_data, $part_name, $chat_id, $light_warning_value, $serious_warning_value)
     {
         $photo_url = (new DiagramsImages())->createUsageVerticalBarChart(
             $error_data,
-            $chat_data['light_warning_value'],
-            $chat_data['serious_warning_value']
+            $light_warning_value,
+            $serious_warning_value
         );
 
         $photo_caption = 'Критичне навантаження на ' . $part_name . "\n";
@@ -334,7 +334,7 @@ class Main
         $photo_caption .= 'Максимальне значення - ' . max($error_data) . "\n";
 
         Request::sendPhoto([
-            'chat_id' => $chat_data['chat_id'],
+            'chat_id' => $chat_id,
             'photo' => $photo_url,
             'caption' => $photo_caption
         ]);

@@ -104,8 +104,7 @@ while (true) {
         }
 
         $new_check_time = (new DateTime('now'))->getTimestamp();
-        if ($new_check_time - $last_check_time > 15) {
-            print_r ((new DateTime('now'))->format('Y-m-d H:i:s') . "\n");
+        if ($new_check_time - $last_check_time > 60) {
             Main::getInstance()->updateStatsInfo();
             $last_check_time = (new DateTime('now'))->getTimestamp();
         }
