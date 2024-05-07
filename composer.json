@@ -1,0 +1,8 @@
+{
+  "require": {
+    "phpseclib/phpseclib": "3.0.37",
+    "longman/telegram-bot": "0.82.0",
+    "image-charts/image-charts": "6.1.4",
+    "ext-pdo": "*"
+  }
+}
