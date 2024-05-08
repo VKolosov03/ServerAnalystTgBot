@@ -40,10 +40,6 @@ class Main
 
     public function connectToServer($chat_id, $data)
     {
-        if (count($data) !== 3) {
-            $response = 'Неправильна форма переданих даних!';
-            return $response;
-        }
 
         try {
             $this->ssh = new SSH2($data[0]);
@@ -51,10 +47,9 @@ class Main
                 $response = 'Неправильні ім\'я користувача або пароль!';
             } else {
                 $response = 'Успішне підключення';
-                $this->db->setUpdateChatServerTableData($chat_id, $data);
+                $this->db->setInsertChatServerTableData($chat_id, $data);
             }
         } catch (Exception $e) {
-            print_r($e->getMessage());
             $response = 'Неправильна IP адреса!';
         }
 
@@ -120,7 +115,7 @@ class Main
         $photo = [];
 
         if (count($last_cpu_usage_data) > 1) {
-            $bar_chart_caption = 'Стовпчаста діаграма останнього використання жорсткого диску.' . "\n";
+            $bar_chart_caption = 'Стовпчаста діаграма останнього використання процесору.' . "\n";
             $bar_chart_caption .= 'Медіана останніх значень - ' . median($last_cpu_usage_data) . "\n";
             $bar_chart_caption .= 'Середнє значення - ' . average($last_cpu_usage_data) . "\n";
             $bar_chart_caption .= 'Мінімальне значення - ' . min($last_cpu_usage_data) . "\n";
@@ -182,7 +177,7 @@ class Main
         ];
 
         if (count($last_ram_usage_data) > 1) {
-            $bar_chart_caption = 'Стовпчаста діаграма останнього використання жорсткого диску.' . "\n";
+            $bar_chart_caption = 'Стовпчаста діаграма останнього використання оперативної пам\'яті.' . "\n";
             $bar_chart_caption .= 'Медіана останніх значень - ' . median($last_ram_usage_data) . "\n";
             $bar_chart_caption .= 'Середнє значення - ' . average($last_ram_usage_data) . "\n";
             $bar_chart_caption .= 'Мінімальне значення - ' . min($last_ram_usage_data) . "\n";
@@ -300,23 +295,48 @@ class Main
             $this->db->setUpdateStatsTableData('cpu_info', $chat['chat_id'], $cpu_data);
             $this->db->setUpdateStatsTableData('ram_info', $chat['chat_id'], $ram_data);
             $this->db->setUpdateStatsTableData('disk_info', $chat['chat_id'], $disk_data);
+        }
+    }
+
+    public function sendErrorMessages()
+    {
+        $chats_data = $this->db->getChatsTableData();
+
+        foreach ($chats_data as $chat) {
+            if (!$this->checkConnection($chat['chat_id'])) {
+                continue;
+            }
+
+            $check_time = strtotime((new DateTime('now'))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'));
+            $last_update_time = (new DateTime($chat['last_update_time']))->getTimestamp();
+            if ($check_time - $last_update_time < ($chat['warning_time_limit'] * 60)) {
+                continue;
+            }
 
             $last_cpu_usage_data = $this->db->getLastUsageDataByChatId('cpu_info', $chat['chat_id'], $chat['warning_time_limit']);
             $last_ram_usage_data = $this->db->getLastUsageDataByChatId('ram_info', $chat['chat_id'], $chat['warning_time_limit']);
             $last_disk_usage_data = $this->db->getLastUsageDataByChatId('disk_info', $chat['chat_id'], $chat['warning_time_limit']);
 
-            if (num_array_check_less_than_or_equal($last_cpu_usage_data, $chat['serious_warning_value'])) {
+            if (num_array_check_less_than_or_equal($last_cpu_usage_data, $chat['cpu_serious_warning_value'])) {
                 $this->sendErrorMessage($last_cpu_usage_data, 'CPU', $chat['chat_id'], $chat['cpu_light_warning_value'], $chat['cpu_serious_warning_value']);
             }
 
-            if (num_array_check_less_than_or_equal($last_ram_usage_data, $chat['serious_warning_value'])) {
+            if (num_array_check_less_than_or_equal($last_ram_usage_data, $chat['ram_serious_warning_value'])) {
                 $this->sendErrorMessage($last_ram_usage_data, 'RAM', $chat['chat_id'], $chat['ram_light_warning_value'], $chat['ram_serious_warning_value']);
             }
 
-            if (num_array_check_less_than_or_equal($last_disk_usage_data, $chat['serious_warning_value'])) {
+            if (num_array_check_less_than_or_equal($last_disk_usage_data, $chat['disk_serious_warning_value'])) {
                 $this->sendErrorMessage($last_disk_usage_data, 'HDD', $chat['chat_id'], $chat['disk_light_warning_value'], $chat['disk_serious_warning_value']);
             }
+
+            $this->db->setChatLastUpdateTime($chat['chat_id']);
         }
+    }
+
+    public function deleteOldRows() {
+        $this->db->deleteOldCPURow();
+        $this->db->deleteOldRAMRow();
+        $this->db->deleteOldDiskRow();
     }
 
     private function sendErrorMessage($error_data, $part_name, $chat_id, $light_warning_value, $serious_warning_value)
@@ -338,6 +358,98 @@ class Main
             'photo' => $photo_url,
             'caption' => $photo_caption
         ]);
+    }
+
+    private function checkWarningsValue($light_warning, $serious_warning) {
+        $response = false;
+
+        if ($light_warning < 5) {
+            $response = 'Значення попередження має бути не менше 5';
+        } elseif ($serious_warning > 95) {
+            $response = 'Значення критичного попередження не може бути більше 95';
+        } elseif ($serious_warning - $light_warning < 5) {
+            $response = 'Різниця від попередження до критичного попередження має бути не менше 5';
+        }
+
+        return $response;
+    }
+
+    public function updateChatCPUParameters($chat_id, $cpu_data)
+    {
+        if (!$this->checkConnection($chat_id)) {
+            $response = 'Немає підключення до сервера';
+        } else {
+            $response = $this->checkWarningsValue($cpu_data[0], $cpu_data[1]) ?: '';
+        }
+
+        if (strlen($response) === 0) {
+            if ($this->db->setUpdateChatCPUTableData($chat_id, $cpu_data)) {
+                $response = 'Оновлення пройшло успішно';
+            } else {
+                $response = 'Помилка оновлення';
+            }
+        }
+
+        return $response;
+    }
+
+    public function updateChatRAMParameters($chat_id, $ram_data)
+    {
+        if (!$this->checkConnection($chat_id)) {
+            $response = 'Немає підключення до сервера';
+        } else {
+            $response = $this->checkWarningsValue($ram_data[0], $ram_data[1]) ?: '';
+        }
+
+        if (strlen($response) === 0) {
+            if ($this->db->setUpdateChatRAMTableData($chat_id, $ram_data)) {
+                $response = 'Оновлення пройшло успішно';
+            } else {
+                $response = 'Помилка оновлення';
+            }
+        }
+
+        return $response;
+    }
+
+    public function updateChatDiskParameters($chat_id, $disk_data)
+    {
+        if (!$this->checkConnection($chat_id)) {
+            $response = 'Немає підключення до сервера';
+        } else {
+            $response = $this->checkWarningsValue($disk_data[0], $disk_data[1]) ?: '';
+        }
+
+        if (strlen($response) === 0) {
+            if ($this->db->setUpdateChatDiskTableData($chat_id, $disk_data)) {
+                $response = 'Оновлення пройшло успішно';
+            } else {
+                $response = 'Помилка оновлення';
+            }
+        }
+
+        return $response;
+    }
+
+    public function updateChatWarningTimeParameters($chat_id, $limit)
+    {
+        if (!$this->checkConnection($chat_id)) {
+            $response = 'Немає підключення до сервера';
+        } elseif ($limit <= 5) {
+            $response = 'Значення ліміту має бути як мінімум 5 хвилин';
+        } elseif ($limit >= 15) {
+            $response = 'Значення ліміту має бути не більше за 15 хвилин';
+        }
+
+        if (strlen($response) === 0) {
+            if ($this->db->setUpdateChatLimitTableData($chat_id, $limit)) {
+                $response = 'Оновлення пройшло успішно';
+            } else {
+                $response = 'Помилка оновлення';
+            }
+        }
+
+        return $response;
     }
 }
 

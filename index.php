@@ -21,11 +21,12 @@ $bot_username = 'server_analytics_bot';
 $bot_api_key = '7076849962:AAHxXoFNzF4yPqMYKAqkBN9fdtXnD_DWXho';
 
 $last_command = [];
-$last_check_time = (new DateTime('now'))->getTimestamp();
+$last_update_time = (new DateTime('now'))->getTimestamp();
+$last_delete_time = (new DateTime('now'))->getTimestamp();
 
 while (true) {
     try {
-        // Create Telegram API object
+
         $telegram = new Longman\TelegramBot\Telegram($bot_api_key, $bot_username);
         $telegram->useGetUpdatesWithoutDatabase();
 
@@ -45,8 +46,9 @@ while (true) {
                         if (Main::getInstance()->checkConnection($message_chat_id)) {
                             $response = 'З\'єднання вже встановлено!';
                         } else {
-                            $response = 'Введіть ip ітд.';
-                            $last_command[$message_chat_id] = $message_text;
+                            $response = 'Введіть ip адресу сервера';
+                            $last_command[$message_chat_id]['command'] = $message_text;
+                            $last_command[$message_chat_id]['stage'] = 1;
                         }
                         break;
                     case '/disconnect':
@@ -64,17 +66,107 @@ while (true) {
                     case '/get_additional_info':
                         $response = Main::getInstance()->getAdditionalData($message_chat_id);
                         break;
-                    case '/check_overload':
-                        $response = 'zroz';
+                    case '/set_cpu_parameters':
+                    case '/set_ram_parameters':
+                    case '/set_disk_parameters':
+                        $response = 'Введіть значення пороку попередження';
+                        $last_command[$message_chat_id]['command'] = $message_text;
+                        $last_command[$message_chat_id]['stage'] = 1;
+                        break;
+                    case '/set_warning_range_time':
+                        $response = 'Введіть проміжок, за який фіксується помилка(від 5 до 15 хвилин)';
+                        $last_command[$message_chat_id]['command'] = $message_text;
                         break;
                     case '/help':
                         $response = 'zroz';
                         break;
                     default:
-                        if ($last_command[$message_chat_id] ?? '' === '/connect') {
-                            $form_data = explode("\n", $message_text);
-                            $response = Main::getInstance()->connectToServer($message_chat_id, $form_data);
-                            unset($last_command[$message_chat_id]);
+                        if (($last_command[$message_chat_id]['command'] ?? '') === '/connect') {
+                            if ($message_text === '/stop') {
+                                unset($last_command[$message_chat_id]);
+
+                                $response = 'Відміна команди';
+                            } elseif ($last_command[$message_chat_id]['stage'] === 1) {
+                                $last_command[$message_chat_id]['data'][] = trim($message_text);
+                                $last_command[$message_chat_id]['stage'] = 2;
+
+                                $response = 'Тепер введіть username';
+                            } elseif ($last_command[$message_chat_id]['stage'] === 2) {
+                                $last_command[$message_chat_id]['data'][] = trim($message_text);
+                                $last_command[$message_chat_id]['stage'] = 3;
+
+                                $response = 'Тепер введіть пароль';
+                            } elseif ($last_command[$message_chat_id]['stage'] === 3) {
+                                $last_command[$message_chat_id]['data'][] = trim($message_text);
+
+                                $response = Main::getInstance()->connectToServer(
+                                    $message_chat_id,
+                                    $last_command[$message_chat_id]['data']
+                                );
+                                unset($last_command[$message_chat_id]);
+                            }
+                        } elseif (in_array(
+                            ($last_command[$message_chat_id]['command'] ?? ''),
+                            ['/set_cpu_parameters', '/set_ram_parameters', '/set_disk_parameters']
+                        )) {
+                            if ($message_text === '/stop') {
+                                unset($last_command[$message_chat_id]);
+
+                                $response = 'Відміна команди';
+                            } elseif ($last_command[$message_chat_id]['stage'] === 1) {
+                                if (filter_var($message_text, FILTER_VALIDATE_FLOAT)) {
+                                    $last_command[$message_chat_id]['data'][] = (float)$message_text;
+                                    $last_command[$message_chat_id]['stage'] = 2;
+
+                                    $response = 'Тепер введіть значення пороку критичного попередження';
+                                } else {
+                                    $response = 'Значення має бути числовим, спробуйте знову';
+                                }
+                            } elseif ($last_command[$message_chat_id]['stage'] === 2) {
+                                if (filter_var($message_text, FILTER_VALIDATE_FLOAT)) {
+                                    $last_command[$message_chat_id]['data'][] = (float)$message_text;
+
+                                    if ($last_command[$message_chat_id]['command'] === '/set_cpu_parameters') {
+                                        $response = Main::getInstance()->updateChatCPUParameters(
+                                            $message_chat_id,
+                                            $last_command[$message_chat_id]['data']
+                                        );
+                                    } elseif ($last_command[$message_chat_id]['command'] === '/set_ram_parameters') {
+                                        $response = Main::getInstance()->updateChatRAMParameters(
+                                            $message_chat_id,
+                                            $last_command[$message_chat_id]['data']
+                                        );
+                                    } elseif ($last_command[$message_chat_id]['command'] === '/set_disk_parameters') {
+                                        $response = Main::getInstance()->updateChatDiskParameters(
+                                            $message_chat_id,
+                                            $last_command[$message_chat_id]['data']
+                                        );
+                                    }
+
+                                    unset($last_command[$message_chat_id]);
+                                } else {
+                                    $response = 'Значення має бути числовим, спробуйте знову';
+                                }
+                            }
+                        } elseif (($last_command[$message_chat_id]['command'] ?? '') === '/set_warning_range_time') {
+                            if ($message_text === '/stop') {
+                                unset($last_command[$message_chat_id]);
+
+                                $response = 'Відміна команди';
+                            } else {
+                                if (filter_var($message_text, FILTER_VALIDATE_INT)) {
+                                    $last_command[$message_chat_id]['data'] = (float)$message_text;
+
+                                    $response = Main::getInstance()->updateChatWarningTimeParameters(
+                                        $message_chat_id,
+                                        $last_command[$message_chat_id]['data']
+                                    );
+
+                                    unset($last_command[$message_chat_id]);
+                                } else {
+                                    $response = 'Значення має бути формату int, спробуйте знову';
+                                }
+                            }
                         } else {
                             $response = 'Оберіть команду для того, щоб щось отримати';
                         }
@@ -103,14 +195,23 @@ while (true) {
             }
         }
 
-        $new_check_time = (new DateTime('now'))->getTimestamp();
-        if ($new_check_time - $last_check_time > 60) {
+        $new_update_time = (new DateTime('now'))->getTimestamp();
+        if ($new_update_time - $last_update_time > 30) {
             Main::getInstance()->updateStatsInfo();
-            $last_check_time = (new DateTime('now'))->getTimestamp();
+            $last_update_time = (new DateTime('now'))->getTimestamp();
+        }
+
+        Main::getInstance()->sendErrorMessages();
+
+        $new_delete_time = (new DateTime('now'))->getTimestamp();
+        if ($new_delete_time - $last_delete_time > 900) {
+            Main::getInstance()->deleteOldRows();
+            $last_delete_time = (new DateTime('now'))->getTimestamp();
         }
 
     } catch (Longman\TelegramBot\Exception\TelegramException $e) {
-        // log telegram errors
         echo $e->getMessage();
     }
+
+    sleep(2);
 }

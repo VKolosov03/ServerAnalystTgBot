@@ -14,7 +14,7 @@ class Processor
         $cpu_usage_loadavg = explode(" ", $cpu_usage_data);
         $cpu['usage'] = round($cpu_usage_loadavg[0], 2);
 
-        $cpu['update_datetime']    = date('Y-m-d H:i:s');
+        $cpu['update_datetime'] = (new DateTime('now'))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
 
         return $cpu;
     }
@@ -35,7 +35,7 @@ class Processor
         $ram['used']        = round($ram_response_arr[2] / 1000000,2);
         $ram['available']   = round($ram_response_arr[6] / 1000000,2);
         $ram['usage']       = round(($ram['used']/$ram['total'])*100);
-        $ram['update_datetime']    = date('Y-m-d H:i:s');
+        $ram['update_datetime'] = (new DateTime('now'))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
 
         return $ram;
     }
@@ -71,7 +71,7 @@ class Processor
         $disk['available']   = round($disk_available_space);
         $disk['used']        = round($disk['total'] - $disk['available']);
         $disk['usage']       = round(($disk['used']/$disk['total'])*100);
-        $disk['update_datetime']    = date('Y-m-d H:i:s');
+        $disk['update_datetime'] = (new DateTime('now'))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
 
         return $disk;
     }
