@@ -275,9 +275,7 @@ class Main
         $response .= '🌀 Версія PHP: ' . $additional_data['php_version'] . ";\n";
         $response .= '🌀 Використано пам\'яті на PHP: ' . $additional_data['php_usage'] . "GB;\n";
 
-        return [
-            'text' => $response
-        ];
+        return $response;
     }
 
     public function updateStatsInfo() {
@@ -363,12 +361,12 @@ class Main
     private function checkWarningsValue($light_warning, $serious_warning) {
         $response = false;
 
-        if ($light_warning < 5) {
-            $response = 'Значення попередження має бути не менше 5';
-        } elseif ($serious_warning > 95) {
-            $response = 'Значення критичного попередження не може бути більше 95';
-        } elseif ($serious_warning - $light_warning < 5) {
-            $response = 'Різниця від попередження до критичного попередження має бути не менше 5';
+        if ($light_warning < 1) {
+            $response = 'Значення попередження має бути більше 1';
+        } elseif ($serious_warning > 99) {
+            $response = 'Значення критичного попередження не може бути більше за 99';
+        } elseif ($serious_warning - $light_warning < 1) {
+            $response = 'Різниця від попередження до критичного попередження має бути більше за 1';
         }
 
         return $response;

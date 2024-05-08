@@ -17,9 +17,6 @@ spl_autoload_register(function ($class) {
 });
 
 
-$bot_username = 'server_analytics_bot';
-$bot_api_key = '7076849962:AAHxXoFNzF4yPqMYKAqkBN9fdtXnD_DWXho';
-
 $last_command = [];
 $last_update_time = (new DateTime('now'))->getTimestamp();
 $last_delete_time = (new DateTime('now'))->getTimestamp();
@@ -27,7 +24,7 @@ $last_delete_time = (new DateTime('now'))->getTimestamp();
 while (true) {
     try {
 
-        $telegram = new Longman\TelegramBot\Telegram($bot_api_key, $bot_username);
+        $telegram = new Longman\TelegramBot\Telegram(Constants::BOT_API_KEY, Constants::BOT_USERNAME);
         $telegram->useGetUpdatesWithoutDatabase();
 
         $server_response = $telegram->handleGetUpdates();
@@ -78,7 +75,8 @@ while (true) {
                         $last_command[$message_chat_id]['command'] = $message_text;
                         break;
                     case '/help':
-                        $response = 'zroz';
+                    case '/start':
+                        $response = "ServerAnalyticBot - це бот, що надає користувачу детальну інформацію про сервер, а також його статистичні дані. Окрім цього бот слідкує за значеннями нвантаження для того, щоб повідомити про проблеми. нижче описано список команд, які цей бот може виконувати.\n\n/connect - Під'єднатися до сервера. Користувач передає ip сервера, а також username та пароль, якщо користувач вже підключений, то бот повідомить про це.\n/disconnect - Закрити з'єднання та очистити дані про це з'єднання.\n/get_cpu_info - Отримати дані використання процесора. Детальна інформація з оцінкою навантаження, а також статистичні діаграми до отриманих даних.\n/get_ram_info - Отримати дані використання оперативної пам'яті. Схожий функціонал, що і у /get_cpu_info.\n/get_hard_disk_info - Отримати дані використання жорсткого диску. Схожий функціонал, що і у /get_cpu_info.\n/get_additional_info - Отримати додаткову інформацію про сервер. Ім'я хосту, версії ітд.\n/set_cpu_parameters - Змінити критичні значення для процесора при яких графік буде виділяти значення для попередження, а також надсилати графік зі статистикою, якщо на проміжку часу усі значення критичні.\n/set_ram_parameters - Змінити критичні значення для оперативної пам'яті, використовуються так само, як і значення /set_cpu_parameters.\n/set_disk_parameters - Змінити критичні значення для жорсткого диску, використовуються так само, як і значення /set_cpu_parameters.\n/set_warning_range_time - Змінити час, протягом якого сервер має перевищувати критичні значення, щоб була надіслана статистика останнього проміжку значень для попередження.\n/help - Детальна інформація";
                         break;
                     default:
                         if (($last_command[$message_chat_id]['command'] ?? '') === '/connect') {
@@ -196,7 +194,7 @@ while (true) {
         }
 
         $new_update_time = (new DateTime('now'))->getTimestamp();
-        if ($new_update_time - $last_update_time > 30) {
+        if ($new_update_time - $last_update_time > Constants::TIME_FOR_UPDATE) {
             Main::getInstance()->updateStatsInfo();
             $last_update_time = (new DateTime('now'))->getTimestamp();
         }
@@ -204,7 +202,7 @@ while (true) {
         Main::getInstance()->sendErrorMessages();
 
         $new_delete_time = (new DateTime('now'))->getTimestamp();
-        if ($new_delete_time - $last_delete_time > 900) {
+        if ($new_delete_time - $last_delete_time > Constants::TIME_FOR_DELETE) {
             Main::getInstance()->deleteOldRows();
             $last_delete_time = (new DateTime('now'))->getTimestamp();
         }
@@ -213,5 +211,5 @@ while (true) {
         echo $e->getMessage();
     }
 
-    sleep(2);
+    sleep(3);
 }

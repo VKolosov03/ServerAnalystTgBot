@@ -33,7 +33,7 @@ class SSHCommands
     }
 
     public static function setCommandPHPMemoryUsage(SSH2 $ssh) {
-        return $ssh->exec('php -r "echo phpversion();"');
+        return $ssh->exec('php -r "echo memory_get_usage();"');
     }
 }
 

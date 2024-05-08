@@ -67,9 +67,9 @@ class Processor
             }
         }
 
-        $disk['total']       = round($disk_total_space / 1000000000);
-        $disk['available']   = round($disk_available_space);
-        $disk['used']        = round($disk['total'] - $disk['available']);
+        $disk['total']       = round($disk_total_space / 1000000000, 2);
+        $disk['available']   = round($disk_available_space, 2);
+        $disk['used']        = round($disk['total'] - $disk['available'], 2);
         $disk['usage']       = round(($disk['used']/$disk['total'])*100);
         $disk['update_datetime'] = (new DateTime('now'))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
 
