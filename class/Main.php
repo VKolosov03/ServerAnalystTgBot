@@ -5,7 +5,7 @@ use phpseclib3\Net\SSH2;
 
 class Main
 {
-    private static $instance; // Змінна для зберігання єдиного екземпляру класу
+    private static $instance;
 
     private $ssh;
 
@@ -19,9 +19,9 @@ class Main
     public static function getInstance()
     {
         if (self::$instance === null) {
-            self::$instance = new self(); // Створення єдиного екземпляру, якщо він ще не існує
+            self::$instance = new self();
         }
-        return self::$instance; // Повернення єдиного екземпляру
+        return self::$instance;
     }
 
     public function checkConnection($chat_id)
@@ -433,8 +433,8 @@ class Main
     {
         if (!$this->checkConnection($chat_id)) {
             $response = 'Немає підключення до сервера';
-        } elseif ($limit <= 5) {
-            $response = 'Значення ліміту має бути як мінімум 5 хвилин';
+        } elseif ($limit <= 3) {
+            $response = 'Значення ліміту має бути як мінімум 3 хвилини';
         } elseif ($limit >= 15) {
             $response = 'Значення ліміту має бути не більше за 15 хвилин';
         }
